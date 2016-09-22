@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>html-data</title>
+</head>
+
+<body>
+    <h1>html-data - demo</h1>
+
+    <div>Nome: <input type="text" data="pessoa.nome" onkeyup="pessoa.nome = this.value"></div>
+    <div>Carros: <span data="pessoa.carros"></span></div>
+    <div>Carro 2: <span data="pessoa.carros[1]"></span></div>
+    <br>
+    <div>Rua: <textarea data="pessoa.endereco.rua" onkeyup="pessoa.endereco.rua = this.value"></textarea></div>
+    <div>
+        Visinhos:
+        <select>
+            <option></option>
+            <option data-repeat="pessoa.visinhos">nome</option>
+        </select>
+    </div>
+    <div>
+        Carros:
+        <select>
+            <option data-repeat="pessoa.carros"></option>
+        </select>
+    </div>
+    <div>Teste: <input type="text" data="teste"></div>
+    <br>
+    <div>
+        Visinhos:
+        <div data-repeat="pessoa.visinhos">
+            <b data="nome"></b>
+            <div data="carros[0]"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="html-data.js"></script>
+    <script>
+        var pessoa = {
+            nome: "Janderson Costa",
+            carros: ["uno", "gol", "moto"],
+            endereco: {
+                rua: "Rua das Araucárias",
+                n: 67,
+            },
+            visinhos: [
+                { nome: "joao", carros: ["uno", "gol", "moto"] },
+                { nome: "maria", carros: ["uno", "gol"] },
+                { nome: "paulo", carros: ["jeta", "fusca"] }
+            ]
+        };
+
+        var teste = "Hello World!!";
+
+        updateHtml();
+
+        function updateHtml() {
+            htmlData(pessoa).bind(document.querySelectorAll('[data^="pessoa"]')); // todos iniciando com 'pessoa'
+            htmlData(teste).bind(document.querySelector('[data="teste"]'));
+            htmlData(pessoa.visinhos).repeatBind(document.querySelectorAll('[data-repeat="pessoa.visinhos"]'), function(item, element) {
+                //console.log(item);
+                //console.log(element);
+            });
+            htmlData(pessoa.carros).repeatBind(document.querySelectorAll('[data-repeat="pessoa.carros"]'), function(item, element) {
+                // console.log(item);
+                // console.log(element);
+            });
+        }
+    </script>
+</body>
+
+</html>

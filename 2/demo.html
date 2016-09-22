@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>vData JS</title>
+    <style>
+        body {
+            padding: 1em;
+        }
+        h1, h2, h3, h4, h5 {
+            margin: 0;
+            padding: 0;
+        }
+        .item {
+            border-bottom: 1px solid #ddd;
+            padding: 1em;
+            padding-left: 0;
+        }
+        .exemplo {
+            padding: .25em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>vData JS - Demo</h1>
+<br>
+    <div class="item">
+        <h2>v-data</h2>
+
+        <div class="exemplo"><b>var:</b> <span v-data="teste"></span></div>
+
+        <div class="exemplo"><b>pessoa.nome:</b> <input type="text" v-data="pessoa.nome" onkeyup="pessoa.nome = this.value"></div>
+
+        <div class="exemplo"><b>pessoa.endereco.rua</b>: <textarea v-data="pessoa.endereco.rua" rows="1" onkeyup="pessoa.endereco.rua = this.value"></textarea></div>
+
+        <div class="exemplo"><b>carros:</b> <span v-data="pessoa.carros"></span></div>
+
+        <div class="exemplo"><b>carros[2]:</b> <span v-data="pessoa.carros[2]"></span></div>
+    </div>
+
+    <div class="item">
+        <h2>v-repeat</h2>
+        <div class="exemplo">
+            <b>pessoa.visinhos:</b>
+            <div v-repeat="pessoa.visinhos">
+                [ <span v-data="nome"></span> - <span v-data="carros[0]"></span> ]
+            </div>
+        </div>
+        <div class="exemplo">
+            <b>pessoa.visinhos:</b>
+            <select>
+                <option></option>
+                <option v-repeat="pessoa.visinhos">nome</option>
+            </select>
+        </div>
+        <div class="exemplo">
+            <b>pessoa.carros:</b>
+            <select>
+                <option v-repeat="pessoa.carros"></option>
+            </select>
+        </div>
+    </div>
+
+    <div class="item">
+        <h2>v-hide</h2>
+        <div class="exemplo">
+            <b>pessoa.homem:</b> <span v-data="pessoa.homem" v-hide="pessoa.homem"></span>
+        </div>
+    </div>
+
+    <div class="item">
+        <h2>v-show</h2>
+        <div class="exemplo">
+            <b>pessoa.homem:</b> <span v-data="pessoa.homem" v-show="pessoa.homem"></span>
+        </div>
+    </div>
+
+    <div class="item">
+        <h2>v-disabled</h2>
+        <div class="exemplo">
+            <div v-disabled="pessoa.homem">
+                <div><b>pessoa.homem:</b></div>
+                <input type="text" v-data="pessoa.homem">
+            </div>
+        </div>
+    </div>
+
+    <div class="item">
+        <h2>v-enabled</h2>
+        <div class="exemplo">
+            <div v-enabled="pessoa.homem">
+                <div><b>pessoa.homem:</b></div>
+                <input type="text" v-data="pessoa.homem">
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="vdata.js"></script>
+    <script>
+        var pessoa = {
+            homem: true,
+            mulher: false,
+            nome: "João da Silva",
+            carros: ["uno", "gol", "moto"],
+            endereco: {
+                rua: "Rua das Araucárias",
+                n: 67,
+            },
+            visinhos: [
+                { nome: "joao", carros: ["uno", "gol", "moto"] },
+                { nome: "maria", carros: ["uno", "gol"] },
+                { nome: "paulo", carros: ["jeta", "fusca"] }
+            ]
+        };
+
+        var teste = "Hello World!!";
+
+        vData(pessoa).bind(document.querySelectorAll('[v-data]'));
+        vData(teste).bind(document.querySelector('[v-data]'), function(element) {
+            //console.log(element);
+        });
+        vData(pessoa).repeatBind(document.querySelectorAll('[v-repeat]'), function(item, element) {
+            //console.log(item);
+            //console.log(element);
+        });
+        vData(pessoa).bind(document.querySelectorAll('[v-hide], [v-show], [v-disabled], [v-enabled]'));
+        //vData(pessoa).bind(document.querySelectorAll('[v-show]'));
+        //vData(pessoa).bind(document.querySelectorAll('[v-disabled]'));
+        //vData(pessoa).bind(document.querySelectorAll('[v-enabled]'));
+
+    </script>
+</body>
+
+</html>
