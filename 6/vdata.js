@@ -2,22 +2,31 @@
     v-data JS 1.0.0
     Janderson Costa
     Copyright 2016, MIT License
-    Descrição: Uma simples MVVM API
+    Descrição: ...
 
     Uso: ver demo.html
 */
 
 function vdata(data) {
 	var DATA = data ? data : window,
-		ATTRIBUTES = "[v-value], [v-text], [v-repeat], [v-hide], [v-show], [v-disabled], [v-enabled], [v-class]",
-		BINDED = [];
+		ATTRIBUTES = [
+			"v-data",
+			"v-value",
+			"v-text",
+			"v-repeat",
+			"v-hide",
+			"v-show",
+			"v-disabled",
+			"v-enabled",
+			"v-class"
+		],
+		ELEMENTS = getElements();
 
 
 	// PÚBLICO
 
 	return {
 		bind: function(elements, callback) {
-			cleanRepeatClones(document);
 			bind(elements, null, callback);
 		}
 	};
@@ -25,24 +34,57 @@ function vdata(data) {
 
 	// FUNÇÕES
 
-	function cleanRepeatClones(node) {
-		// remove todas as cópias de v-repeat
+	function getElements(node) {
+		node = node ? node : document;
 
-        var attr = "v-id",
+		var elements = [],
+			_elements;
+
+		for (var i = 0; i < ATTRIBUTES.length; i++) {
+			_elements = node.querySelectorAll("[" + ATTRIBUTES[i] + "]");
+
+			for (var j = 0; j < _elements.length; j++)
+				elements.push(_elements[j]);
+		}
+
+		// -binded
+        cleanRepeatElements(node);
+
+		for (var k = 0; k < ATTRIBUTES.length; k++) {
+			var attr = ATTRIBUTES[k] + "-binded";
+
+			_elements = node.querySelectorAll("[" + attr + "]");
+
+			for (var l = 0; l < _elements.length; l++) {
+                // adiciona o atributo v-
+                _elements[l].setAttribute(ATTRIBUTES[k], _elements[l].getAttribute(attr));
+
+                // remove o atributo -binded
+                _elements[l].removeAttribute(attr);
+
+                elements.push(_elements[l]);
+			}
+		}
+
+		return elements;
+	}
+
+    function cleanRepeatElements(node) {
+        var attr = "v-repeat-binded",
             elements = node.querySelectorAll("[" + attr + "]");
 
         for (var i = 0; i < elements.length; i++) {
             var vId = elements[i].getAttribute("v-id"),
                 _elements = node.querySelectorAll("[v-id='" + vId + "']");
 
-            // remove todos exceto o primeiro (template)
+            // remove todos exceto o primeiro como sendo o template
             for (var j = 1; j < _elements.length; j++)
                 _elements[j].remove();
         }
     }
 
-	function bind(elements, data, callback, canBind) {
-		elements = elements ? elements : document.querySelectorAll(ATTRIBUTES);
+	function bind(elements, data, callback) {
+		elements = elements ? elements : ELEMENTS;
 
 		if (!elements.length)
 			elements = [elements];
@@ -50,18 +92,21 @@ function vdata(data) {
 		for (var i = 0; i < elements.length; i++) {
 			var element = elements[i];
 
-			// não processa elementos v-repeat
-			if (element.attributes["v-repeat"] && !isBinded(element, "v-repeat")) {
+			// v-repeat - não processa elementos com este atributo
+			if (element.attributes["v-repeat"]) {
 				repeatBind(element);
 				continue;
 			}
 
 			// não processa elementos filhos de v-repeat
-			if (element.parentNode.attributes["v-repeat"] && !canBind)
+			if (element.parentNode && element.parentNode.attributes["v-repeat"])
 				continue;
 
+			// v-data
+			vData(element, data);
+
 			// v-value
-			vValue(element, data, canBind);
+			vValue(element, data);
 
 			// v-text
 			vText(element, data);
@@ -87,46 +132,40 @@ function vdata(data) {
 	}
 
 	function repeatBind(template) {
-		var attrName = "v-repeat",
-			attr = template.attributes[attrName],
-			tagName = template.tagName,
+		var attr = template.attributes["v-repeat"],
 			dataArray = getValue(attr.value, DATA),
-            vId = Math.random().toString().split(".")[1],
-			element,
-			attributes,
-			data;
+            vId = Math.floor((1 + Math.random()) * 0x1000000);
 
 		for (var i = 0; i < dataArray.length; i++) {
-			element = template.cloneNode(true);
-			attributes = element.attributes;
-			data = dataArray[i];
+			var element = template.cloneNode(true),
+				attributes = element.attributes,
+				tagName = element.tagName,
+				data = dataArray[i],
+				key;
 
+			element.removeAttribute("v-repeat");
+			element.setAttribute("v-repeat-binded", attr.value);
 			element.setAttribute("v-id", vId);
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			if (template.parentNode)
+				template.parentNode.appendChild(element);
 
-			template.parentNode.appendChild(element);
-
-			if (tagName === "OPTION" && !attributes["v-value"] && !attributes["v-text"])
-				element.setAttribute("v-text", "");
+			// <option/>
+			if (tagName === "OPTION" && !attributes["v-data"] && !attributes["v-value"] && !attributes["v-text"])
+				element.setAttribute("v-data", "");
 
 			// bind
 			bind(element, data);
 
-			var childs = element.querySelectorAll(ATTRIBUTES);
+			var childs = getElements(element);
 
 			if (childs.length)
-				bind(childs, data, null, true);
+				bind(childs, data);
 		}
 
 		// deleta o template
-		template.remove();
-
-		if (tagName === "OPTION")
-			bind([element.parentNode], DATA, null, true);
+		if (template.parentNode)
+			template.parentNode.removeChild(template);
 	}
 
 	function getValue(attrValue, data) {
@@ -158,12 +197,10 @@ function vdata(data) {
 			return value;
 	}
 
-	function vValue(element, data, canBind) {
-		var attrName = "v-value",
-			attr = element.attributes[attrName],
-			tagName = element.tagName;
+	function vData(element, data) {
+		var attr = element.attributes["v-data"];
 
-		if (attr && (!isBinded(element, attrName) || canBind)) {
+		if (attr) {
 			var value = getValue(attr.value, data);
 
 			if (typeof element.value !== "undefined") { // input, textarea, select, option
@@ -178,31 +215,52 @@ function vdata(data) {
 				element.innerHTML = value;
 			}
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-data");
+			element.setAttribute("v-data-binded", attr.value);
+		}
+	}
+
+	function vValue(element, data) {
+		var attr = element.attributes["v-value"],
+			tagName = element.tagName;
+
+		if (attr) {
+			if (tagName === "SELECT") {
+				setTimeout(function() {
+					finish();
+				}, 0);
+			} else {
+				finish();
+			}
+		}
+
+		function finish() {
+			var value = getValue(attr.value, data);
+
+			element.value = value;
+
+			if (element.type === "checkbox")
+				element.checked = value;
+
+			element.removeAttribute("v-value");
+			element.setAttribute("v-value-binded", attr.value);
 		}
 	}
 
 	function vText(element, data) {
-		var attrName = "v-text",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-text"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			element.innerText = getValue(attr.value, data);
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-text");
+			element.setAttribute("v-text-binded", attr.value);
 		}
 	}
 
 	function vClass(element, data) {
-		var attrName = "v-class",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-class"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			var values = attr.value.split(":"),
 				classes = values[0].trim().replace(/  /g, "").split(" "),
 				_data = values[1].trim(),
@@ -212,85 +270,65 @@ function vdata(data) {
 				for (var i in classes)
 					element.classList.add(classes[i]);
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-class");
+			element.setAttribute("v-class-binded", attr.value);
 		}
 	}
 
 	function vHide(element, data) {
-		var attrName = "v-hide",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-hide"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			element.style.display = "";
 
 			if (getValue(attr.value, data))
 				element.style.display = "none";
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-hide");
+			element.setAttribute("v-hide-binded", attr.value);
 		}
 	}
 
 	function vShow(element, data) {
-		var attrName = "v-show",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-show"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			element.style.display = "none";
 
 			if (getValue(attr.value, data))
 				element.style.display = "";
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-show");
+			element.setAttribute("v-show-binded", attr.value);
 		}
 	}
 
 	function vEnabled(element, data) {
-		var attrName = "v-enabled",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-enabled"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			disable(element);
 
 			if (getValue(attr.value, data))
 				enable(element);
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-enabled");
+			element.setAttribute("v-enabled-binded", attr.value);
 		}
 	}
 
 	function vDisabled(element, data) {
-		var	attrName = "v-disabled",
-			attr = element.attributes[attrName];
+		var attr = element.attributes["v-disabled"];
 
-		if (attr && !isBinded(element, attrName)) {
+		if (attr) {
 			enable(element);
 
 			if (getValue(attr.value, data))
 				disable(element);
 
-			BINDED.push({
-				element: element,
-				attr: attrName
-			});
+			element.removeAttribute("v-disabled");
+			element.setAttribute("v-disabled-binded", attr.value);
 		}
-	}
-
-	function isBinded(element, attr) {
-		for (var i = 0; i < BINDED.length; i++)
-			if (element === BINDED[i].element && attr === BINDED[i].attr)
-				return true;
 	}
 
 	function enable(element) {

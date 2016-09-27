@@ -2,14 +2,16 @@
     v-data JS 1.0.0
     Janderson Costa
     Copyright 2016, MIT License
-    Descrição: Uma simples MVVM API
+    Descrição: ...
 
     Uso: ver demo.html
 */
 
 function vdata(data) {
+	cleanRepeatClones(document);
+
 	var DATA = data ? data : window,
-		ATTRIBUTES = "[v-value], [v-text], [v-repeat], [v-hide], [v-show], [v-disabled], [v-enabled], [v-class]",
+		ATTRIBUTES = "[v-data], [v-value], [v-text], [v-repeat], [v-hide], [v-show], [v-disabled], [v-enabled], [v-class]",
 		BINDED = [];
 
 
@@ -17,7 +19,6 @@ function vdata(data) {
 
 	return {
 		bind: function(elements, callback) {
-			cleanRepeatClones(document);
 			bind(elements, null, callback);
 		}
 	};
@@ -60,8 +61,11 @@ function vdata(data) {
 			if (element.parentNode.attributes["v-repeat"] && !canBind)
 				continue;
 
+			// v-data
+			vData(element, data);
+
 			// v-value
-			vValue(element, data, canBind);
+			vValue(element, data);
 
 			// v-text
 			vText(element, data);
@@ -89,17 +93,14 @@ function vdata(data) {
 	function repeatBind(template) {
 		var attrName = "v-repeat",
 			attr = template.attributes[attrName],
-			tagName = template.tagName,
 			dataArray = getValue(attr.value, DATA),
-            vId = Math.random().toString().split(".")[1],
-			element,
-			attributes,
-			data;
+            vId = Math.floor((1 + Math.random()) * 0x1000000);
 
 		for (var i = 0; i < dataArray.length; i++) {
-			element = template.cloneNode(true);
-			attributes = element.attributes;
-			data = dataArray[i];
+			var element = template.cloneNode(true),
+				attributes = element.attributes,
+				tagName = element.tagName,
+				data = dataArray[i];
 
 			element.setAttribute("v-id", vId);
 
@@ -110,8 +111,9 @@ function vdata(data) {
 
 			template.parentNode.appendChild(element);
 
-			if (tagName === "OPTION" && !attributes["v-value"] && !attributes["v-text"])
-				element.setAttribute("v-text", "");
+			// <option/>
+			if (tagName === "OPTION" && !attributes["v-data"] && !attributes["v-value"] && !attributes["v-text"])
+				element.setAttribute("v-data", "");
 
 			// bind
 			bind(element, data);
@@ -123,10 +125,7 @@ function vdata(data) {
 		}
 
 		// deleta o template
-		template.remove();
-
-		if (tagName === "OPTION")
-			bind([element.parentNode], DATA, null, true);
+		template.parentNode.removeChild(template);
 	}
 
 	function getValue(attrValue, data) {
@@ -158,12 +157,11 @@ function vdata(data) {
 			return value;
 	}
 
-	function vValue(element, data, canBind) {
-		var attrName = "v-value",
-			attr = element.attributes[attrName],
-			tagName = element.tagName;
+	function vData(element, data) {
+		var attrName = "v-data",
+			attr = element.attributes[attrName];
 
-		if (attr && (!isBinded(element, attrName) || canBind)) {
+		if (attr && !isBinded(element, attrName)) {
 			var value = getValue(attr.value, data);
 
 			if (typeof element.value !== "undefined") { // input, textarea, select, option
@@ -177,6 +175,36 @@ function vdata(data) {
 			} else {
 				element.innerHTML = value;
 			}
+
+			BINDED.push({
+				element: element,
+				attr: attrName
+			});
+		}
+	}
+
+	function vValue(element, data) {
+		var attrName = "v-value",
+			attr = element.attributes[attrName],
+			tagName = element.tagName;
+
+		if (attr && !isBinded(element, attrName)) {
+			if (tagName === "SELECT") {
+				setTimeout(function() {
+					finish();
+				}, 0);
+			} else {
+				finish();
+			}
+		}
+
+		function finish() {
+			var value = getValue(attr.value, data);
+
+			element.value = value;
+
+			if (element.type === "checkbox")
+				element.checked = value;
 
 			BINDED.push({
 				element: element,
